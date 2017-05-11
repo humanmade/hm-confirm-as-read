@@ -49,8 +49,6 @@ function action_add_meta_boxes() {
 		return post_type_supports( $post_type, 'hm-confirm-as-read' );
 	} );
 
-	print_r( $post_types );
-
 	add_meta_box( 'hm-confirm-as-read', __( 'HM Confirm as read.', 'hm-car' ), __NAMESPACE__ . '\\render_meta_box', $post_types, 'side' );
 }
 
