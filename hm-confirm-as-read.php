@@ -11,7 +11,7 @@
  * @package         hm_confirm_as_read
  */
 
-namespace HM\ConfirmationAsRead;
+namespace HM\ConfirmAsRead;
 
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\init' );
 
@@ -21,26 +21,24 @@ add_action( 'plugins_loaded', __NAMESPACE__ . '\\init' );
  * @return void
  */
 function init() {
-
 	foreach ( [ 'post', 'page' ] as $post_type ) {
 		add_post_type_support( $post_type, 'hm-confirm-as-read' );
 	}
 
 	add_filter( 'the_content', __NAMESPACE__ . '\\filter_the_content' );
-	add_action( 'wp_head', __NAMESPACE__ . '\\action_wp_head' );
-	add_action( 'admin_init', __NAMESPACE__ . '\\action_add_meta_boxes' );
-	add_action( 'save_post', __NAMESPACE__ . '\\handle_save_meta_box' );
+	add_action( 'wp_head',     __NAMESPACE__ . '\\action_wp_head' );
+	add_action( 'admin_init',  __NAMESPACE__ . '\\action_add_meta_boxes' );
+	add_action( 'save_post',   __NAMESPACE__ . '\\handle_save_meta_box' );
 
 	if ( isset( $_GET['hm-car-action-confirm-nonce'] ) ) {
 		handle_action_confirm();
 	} elseif ( isset( $_GET['hm-car-action-unconfirm-nonce'] ) ) {
 		handle_action_unconfirm();
 	}
-
 }
 
 /**
- * Add the meta box .
+ * Add the meta box.
  *
  * @return void
  */
@@ -49,7 +47,7 @@ function action_add_meta_boxes() {
 		return post_type_supports( $post_type, 'hm-confirm-as-read' );
 	} );
 
-	add_meta_box( 'hm-confirm-as-read', __( 'HM Confirm as read.', 'hm-car' ), __NAMESPACE__ . '\\render_meta_box', $post_types, 'side' );
+	add_meta_box( 'hm-confirm-as-read', __( 'HM Confirm as read.', 'hm-confirm-as-read' ), __NAMESPACE__ . '\\render_meta_box', $post_types, 'side' );
 }
 
 /**
@@ -86,9 +84,7 @@ function filter_the_content( $content ) {
  */
 function get_confirmed_users_for_post( $post_id ) {
 	return array_map(
-		function( $user_id ) {
-			return absint( $user_id );
-		},
+		'absint',
 		(array) json_decode( get_post_meta( $post_id, 'hm_car_confirmed_users', true ) )
 	);
 }
@@ -104,7 +100,7 @@ function confirm_user_for_post( $user_id, $post_id ) {
 	$confirmed = (array) json_decode( get_post_meta( $post_id, 'hm_car_confirmed_users', true ) );
 	if ( ! in_array( $user_id, $confirmed, true ) ) {
 		$confirmed[] = $user_id;
-		$confirmed = sanitize_confirmed_users_data( $confirmed );
+		$confirmed   = sanitize_confirmed_users_data( $confirmed );
 		update_post_meta( $post_id, 'hm_car_confirmed_users', (string) wp_json_encode( $confirmed ) );
 	}
 }
@@ -118,8 +114,8 @@ function confirm_user_for_post( $user_id, $post_id ) {
  */
 function unconfirm_user_for_post( $user_id, $post_id ) {
 	$confirmed = (array) json_decode( get_post_meta( $post_id, 'hm_car_confirmed_users', true ) );
-	if ( in_array( $user_id, $confirmed, true ) ) {
-		$key = array_search( $user_id , $confirmed, true );
+	$key       = array_search( $user_id , $confirmed, true );
+	if ( $key ) {
 		unset( $confirmed[ $key ] );
 		$confirmed = sanitize_confirmed_users_data( $confirmed );
 		update_post_meta( $post_id, 'hm_car_confirmed_users', wp_json_encode( $confirmed ) );
@@ -141,13 +137,11 @@ function is_user_confirmed_for_post( $user_id, $post_id ) {
 /**
  * Sanitize confirmed user data.
  *
- * @param  array $data Dirty data.
+ * @param  array $data Dirty data, expected array of user IDs.
  * @return array       Array of IDs.
  */
-function sanitize_confirmed_users_data( $data ) {
-	return array_filter( array_map( function( $user_id ) {
-		return absint( $user_id );
-	}, $data ) );
+function sanitize_confirmed_users_data( $user_data ) {
+	return array_filter( array_map( 'absint', $user_ids ) );
 }
 
 /**
@@ -241,7 +235,7 @@ function handle_action_unconfirm() {
 }
 
 /**
- * Helper to get the post type singular label
+ * Helper to get the post type singular label.
  *
  * @return string
  */
@@ -261,15 +255,27 @@ function get_post_type_label_singular( $post_id ) {
 	?>
 	<div id="hm-confirm-as-read" class="hm-confirm-as-read-container" style="clear: both; width: 100%;">
 
-		<h2><?php esc_html_e( 'Confirm as read.', 'hm-car' ); ?></h2>
+		<h2><?php esc_html_e( 'Confirm as read.', 'hm-confirm-as-read' ); ?></h2>
 
-		<p><?php printf( esc_html__( 'We would like you to confirm that you have read this %s', 'hm-car' ), esc_html( get_post_type_label_singular( $post_id ) ) ); ?></p>
+		<p>
+			<?php echo esc_html( sprintf(
+				__( 'We would like you to confirm that you have read this %s', 'hm-confirm-as-read' ),
+				get_post_type_label_singular( $post_id )
+			) ); ?>
+		</p>
 
 		<?php if ( ! is_user_confirmed_for_post( get_current_user_id(), $post_id ) ) : ?>
 			<form action="<?php echo esc_url( get_permalink() ); ?>">
 				<?php wp_nonce_field( 'hm_car_action_confirm', 'hm-car-action-confirm-nonce', true, true ); ?>
+
 				<input type="hidden" name="hm-car-post-id" value="<?php echo absint( get_the_ID() ); ?>" />
-				<button class="btn button Btn" type="submit"><?php echo esc_html( sprintf( __( 'I confirm that I have read this %s.', 'hm-car' ), get_post_type_label_singular( $post_id ) ) ); ?></button>
+
+				<button class="btn button Btn" type="submit">
+					<?php echo esc_html( sprintf(
+						__( 'I confirm that I have read this %s.', 'hm-confirm-as-read' ),
+						get_post_type_label_singular( $post_id )
+					) ); ?>
+				</button>
 			</form>
 		<?php else : ?>
 			<?php
@@ -280,19 +286,19 @@ function get_post_type_label_singular( $post_id ) {
 			], get_permalink() );
 			?>
 			<p class="hm-car-notice"><small>
-				<span class="hm-car-icon-tick">✔</span> <?php echo esc_html_e( 'You have confirmed you have read this.', 'hm-car' ); ?>
-				<a href="<?php echo esc_url( $unconfirm_url ); ?>">Undo</a>
+				<span class="hm-car-icon-tick">✔</span> <?php esc_html_e( 'You have confirmed you have read this.', 'hm-confirm-as-read' ); ?>
+				<a href="<?php echo esc_url( $unconfirm_url ); ?>"><?php esc_html_e( 'Undo', 'hm-confirm-as-read' ); ?></a>
 			</small></p>
 		<?php endif; ?>
 
 		<?php wp_nonce_url( $actionurl, $action, $name ); ?>
 
 		<div class="hm-confirm-as-read-confirmed-users">
-			<h3><span class="hm-car-icon-tick">✔</span> <?php esc_html_e( 'Have read.', 'hm-car' ); ?></h3>
+			<h3><span class="hm-car-icon-tick">✔</span> <?php esc_html_e( 'Have read.', 'hm-confirm-as-read' ); ?></h3>
 			<?php render_confirmed_users( $post_id ); ?>
 		</div>
 		<div class="hm-confirm-as-read-unconfirmed-users">
-			<h3><span class="hm-car-icon-cross">✘</span> <?php esc_html_e( 'Not read.', 'hm-car' ); ?></h3>
+			<h3><span class="hm-car-icon-cross">✘</span> <?php esc_html_e( 'Not read.', 'hm-confirm-as-read' ); ?></h3>
 			<?php render_unconfirmed_users( $post_id ); ?>
 		</div>
 	</div>
@@ -315,14 +321,20 @@ function render_confirmed_users( $post_id ) {
 		echo '</ul>';
 	} else {
 		echo '<p>';
-		printf(
-			esc_html__( 'No users have confirmed that they have read this %s.', 'hm-car' ),
+		echo esc_html( sprintf(
+			__( 'No users have confirmed that they have read this %s.', 'hm-confirm-as-read' ),
 			get_post_type_label_singular( $post_id )
-		);
+		) );
 		echo '</p>';
 	}
 }
 
+/**
+ * Render list of unconfirmed users.
+ *
+ * @param  int $post_id Post ID.
+ * @return void
+ */
 function render_unconfirmed_users( $post_id ) {
 	$users = get_users( [ 'exclude' => get_confirmed_users_for_post( $post_id ) ] );
 	if ( $users ) {
@@ -333,21 +345,36 @@ function render_unconfirmed_users( $post_id ) {
 		echo '</ul>';
 	} else {
 		echo '<p>';
-		printf(
-			esc_html__( 'Eeryone has confirmed that they have read this %s!', 'hm-car' ),
+		echo esc_html( sprintf(
+			__( 'Everyone has confirmed that they have read this %s!', 'hm-confirm-as-read' ),
 			get_post_type_label_singular( $post_id )
-		);
+		) );
 		echo '</p>';
 	}
 }
 
+/**
+ * Render a single user list item.
+ *
+ * Used by render_confirmed_users and render_unconfirmed_users.
+ *
+ * @param  WP_User $user WP User object.
+ * @return void
+ */
 function render_user_list_item( $user ) {
-	echo '<li class="hm-car-user" tabindex="0">';
-	echo '<span class="hm-car-user-name">' . $user->display_name . '</span>';
-	echo get_avatar( $user->ID, 40 );
-	echo '</li>';
+	?>
+	<li class="hm-car-user" tabindex="0">
+		<span class="hm-car-user-name"><?php echo esc_html( $user->display_name ); ?></span>
+		<?php echo get_avatar( $user->ID, 40 ); ?>
+	</li>
+	<?php
 }
 
+/**
+ * Render a style element for styling the main front end UI.
+ *
+ * @return void
+ */
 function render_styles() {
 	?>
 	<style>
@@ -437,12 +464,19 @@ function render_styles() {
 	<?php
 }
 
+/**
+ * Render the admin JS.
+ *
+ * Should be loaded only when the meta box is shown (post edit screen).
+ *
+ * @return void
+ */
 function render_admin_script() {
 	?>
 	<script>
 		var el = document.querySelector( 'input[name="hm-car-reset"]' );
 		el.addEventListener( 'change', function(e) {
-			if ( ! confirm( <?php echo wp_json_encode( __( 'Are you sure you want to reset the confirm as read state for all users?', 'hm-car' ) ); ?> ) ) {
+			if ( ! confirm( <?php echo wp_json_encode( __( 'Are you sure you want to reset the confirm as read state for all users?', 'hm-confirm-as-read' ) ); ?> ) ) {
 				e.preventDefault();
 				this.checked = false;
 			}
@@ -451,20 +485,25 @@ function render_admin_script() {
 	<?php
 }
 
+/**
+ * Render the post meta box.
+ *
+ * @return void
+ */
 function render_meta_box( $post ) {
-	add_action('admin_footer', __NAMESPACE__ . '\\render_admin_script' );
+	add_action( 'admin_footer', __NAMESPACE__ . '\\render_admin_script' );
 	wp_nonce_field( 'hm_car_metabox', 'hm-car-meta-box-nonce', true, true )
 	?>
 	<p>
 	<label style="display: block; padding-left: 25px;">
 		<input type="checkbox" style="margin-left: -25px;" name="hm-car-enabled" <?php checked( is_enabled_for_post( $post->ID ) ); ?>/>
-		<?php esc_html_e( 'Enable confirm as read.', 'hm-car' ); ?>
+		<?php esc_html_e( 'Enable confirm as read.', 'hm-confirm-as-read' ); ?>
 	</label>
 	</p>
 	<p>
 	<label style="display: block; padding-left: 25px;">
 		<input type="checkbox" style="margin-left: -25px;" name="hm-car-reset"/>
-		<?php esc_html_e( 'Mark as major update. Reset users read status.', 'hm-car' ); ?>
+		<?php esc_html_e( 'Mark as major update. Reset users read status.', 'hm-confirm-as-read' ); ?>
 	</label>
 	</p>
 	<?php
