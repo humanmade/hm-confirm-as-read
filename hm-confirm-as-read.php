@@ -68,7 +68,7 @@ function action_wp_head() {
  * @return string $content Post content.
  */
 function filter_the_content( $content ) {
-	if ( is_singular( 'post' ) && is_confirmation_allowed_for_post( get_the_ID() ) ) {
+	if ( is_singular() && is_confirmation_allowed_for_post( get_the_ID() ) ) {
 		ob_start();
 		render_front_end_ui( get_the_ID() );
 		$content = $content . ob_get_clean();
@@ -83,10 +83,7 @@ function filter_the_content( $content ) {
  * @return array User IDs.
  */
 function get_confirmed_users_for_post( $post_id ) {
-	return array_map(
-		'absint',
-		(array) json_decode( get_post_meta( $post_id, 'hm_car_confirmed_users', true ) )
-	);
+	return array_map( 'absint', (array) json_decode( get_post_meta( $post_id, 'hm_car_confirmed_users', true ) ) );
 }
 
 /**
@@ -97,7 +94,7 @@ function get_confirmed_users_for_post( $post_id ) {
  * @return void
  */
 function confirm_user_for_post( $user_id, $post_id ) {
-	$confirmed = (array) json_decode( get_post_meta( $post_id, 'hm_car_confirmed_users', true ) );
+	$confirmed = get_confirmed_users_for_post( $post_id );
 	if ( ! in_array( $user_id, $confirmed, true ) ) {
 		$confirmed[] = $user_id;
 		$confirmed   = sanitize_confirmed_users_data( $confirmed );
@@ -113,9 +110,9 @@ function confirm_user_for_post( $user_id, $post_id ) {
  * @return void
  */
 function unconfirm_user_for_post( $user_id, $post_id ) {
-	$confirmed = (array) json_decode( get_post_meta( $post_id, 'hm_car_confirmed_users', true ) );
-	$key       = array_search( $user_id , $confirmed, true );
-	if ( $key ) {
+	$confirmed = get_confirmed_users_for_post( $post_id );
+	$key       = array_search( $user_id, $confirmed, true );
+	if ( false !== $key ) {
 		unset( $confirmed[ $key ] );
 		$confirmed = sanitize_confirmed_users_data( $confirmed );
 		update_post_meta( $post_id, 'hm_car_confirmed_users', wp_json_encode( $confirmed ) );
@@ -140,7 +137,7 @@ function is_user_confirmed_for_post( $user_id, $post_id ) {
  * @param  array $data Dirty data, expected array of user IDs.
  * @return array       Array of IDs.
  */
-function sanitize_confirmed_users_data( $user_data ) {
+function sanitize_confirmed_users_data( $user_ids ) {
 	return array_filter( array_map( 'absint', $user_ids ) );
 }
 
@@ -210,7 +207,7 @@ function handle_action_confirm() {
 		is_confirmation_allowed_for_post( $post_id )
 	) {
 		confirm_user_for_post( get_current_user_id(), $post_id );
-		wp_safe_redirect( add_query_arg( [ 'hm-car-status' => 'confirmed' ], wp_get_referer() ) );
+		wp_safe_redirect( add_query_arg( [ 'hm-car-status' => 'confirmed' ], wp_get_referer() . '#hm-confirm-as-read' ) );
 		exit;
 	}
 }
@@ -411,6 +408,13 @@ function render_styles() {
 		position: relative;
 		float: left;
 		z-index: 1;
+		width: 30px;
+		margin: 0 0 5px 5px;
+	}
+
+	.hm-car-user img {
+		width: 100%;
+		height: auto;
 	}
 
 	.hm-car-user-name {
