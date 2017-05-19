@@ -238,7 +238,6 @@ function get_post_type_label_singular( $post_id ) {
  */
  function render_front_end_ui( $post_id ) {
 	$settings = Settings\get_settings();
-	print_r( $settings );
 
 	?>
 	<div id="hm-confirm-as-read" class="hm-confirm-as-read-container" style="clear: both; width: 100%;">
@@ -363,12 +362,18 @@ function render_styles() {
 		padding: 20px;
 		background: #EFF1EF;
 		border-radius: 2px;
-		margin: 20px 0;
+		margin: .75em 0;
 	}
 
 	.hm-confirm-as-read-container h3 {
 		margin-top: 0;
 	}
+
+	.hm-confirm-as-read-container h4,
+	.hm-confirm-as-read-container p {
+		margin: .75em 0;
+	}
+
 	.hm-car-users,
 	.hm-car-user {
 		margin: 0;
