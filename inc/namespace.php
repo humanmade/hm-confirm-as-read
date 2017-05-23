@@ -163,11 +163,16 @@ function is_confirmation_allowed_for_post( $post_id ) {
  * @return int Post ID.
  */
 function handle_save_meta_box( $post_id ) {
-	check_admin_referer( 'hm_car_metabox', 'hm-car-meta-box-nonce' );
 
-	if ( ! current_user_can( 'edit_post', $post_id ) || defined('DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+	if (
+		! current_user_can( 'edit_post', $post_id ) ||
+		( defined('DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) ||
+		! isset( $_POST[ 'hm-car-meta-box-nonce'] )
+	) {
 		return $post_id;
 	}
+
+	check_admin_referer( 'hm_car_metabox', 'hm-car-meta-box-nonce' );
 
 	if ( isset( $_POST['hm-car-enabled'] ) ) {
 		update_post_meta( $post_id, 'hm_car_enabled', true );
@@ -179,6 +184,7 @@ function handle_save_meta_box( $post_id ) {
 		delete_post_meta( $post_id, 'hm_car_confirmed_users' );
 	}
 
+	return $post_id;
 }
 
 /**
@@ -428,7 +434,7 @@ function render_styles() {
 		border-top-color: rgba(0,0,0,0.75);
 		position: absolute;
 		top: 100%;
-		left: 50%;
+		left: 50%;h
 		margin-left: -5px;
 	}
 
