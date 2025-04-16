@@ -323,11 +323,14 @@ function get_post_type_label_singular( $post_id ) {
  * @return void
  */
 function render_confirmed_users( $post_id ) {
-	if ( $users = get_confirmed_users_for_post( $post_id ) ) {
-		$users = get_users( [ 'include' => $users ] );
+	$confirmations = get_confirmed_users( $post_id );
+	$ids = array_keys( $confirmations );
+	if ( $ids ) {
+		$users = get_users( [ 'include' => $ids ] );
 		echo '<ul class="hm-car-users">';
 		foreach ( $users as $user ) {
-			render_user_list_item( $user );
+			$confirmed_at = $confirmations[ $user->ID ] ?? null;
+			render_user_list_item( $user, $confirmed_at );
 		}
 		echo '</ul>';
 	} else {
@@ -368,11 +371,21 @@ function render_unconfirmed_users( $post_id ) {
  * @param  WP_User $user WP User object.
  * @return void
  */
-function render_user_list_item( $user ) {
+function render_user_list_item( $user, $confirmed_at = null ) {
 	?>
 	<li class="hm-car-user" tabindex="0">
 		<span class="hm-car-user-name"><?php echo esc_html( $user->display_name ); ?></span>
 		<?php echo get_avatar( $user->ID, 40 ); ?>
+		<span class="hm-car-user-confirmed-at">
+			<?php
+			if ( $confirmed_at ) {
+				printf(
+					'<time>' . _x( 'Confirmed at %s', 'print view confirmation date', 'hm-confirm-as-read' ) . '</time>',
+					esc_html( date( 'Y-m-d H:i:s', $confirmed_at ) )
+				);
+			}
+			?>
+		</span>
 	</li>
 	<?php
 }
@@ -470,6 +483,10 @@ function render_styles() {
 		display: block;
 	}
 
+	.hm-car-user-confirmed-at {
+		display: none;
+	}
+
 	.hm-car-icon-tick,
 	.hm-car-icon-cross {
 		color: #7DBF67;
@@ -484,6 +501,31 @@ function render_styles() {
 		padding: 5px 15px;
 		background: #E3EDDF;
 		border-radius: 2px;
+	}
+
+	@media print {
+		.hm-car-users {
+			display: table;
+		}
+		.hm-car-user {
+			float: none;
+			width: 100%;
+			display: table-row;
+		}
+		.hm-car-user img {
+			display: none;
+		}
+		.hm-car-user-name {
+			all: unset;
+			display: table-cell;
+			padding-right: 1em;
+		}
+		.hm-car-user-name:after {
+			display: none;
+		}
+		.hm-car-user-confirmed-at {
+			display: table-cell;
+		}
 	}
 	</style>
 	<?php
