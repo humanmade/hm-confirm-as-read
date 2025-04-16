@@ -75,6 +75,24 @@ function get_confirmed_users_for_post( $post_id ) {
 }
 
 /**
+ * Get users and confirmation times for a post.
+ *
+ * @param int $post_id Post ID.
+ * @return array Map of user ID => timestamp. (Timestamp may be null for legacy data.)
+ */
+function get_confirmed_users( $post_id ) {
+	$ids = (array) json_decode( get_post_meta( $post_id, 'hm_car_confirmed_users', true ) );
+
+	$users = [];
+	foreach ( $ids as $id ) {
+		$confirmed_at = get_post_meta( $post_id, 'hm_car_confirmed_' . (int) $id, true );
+		$users[ $id ] = empty( $confirmed_at ) ? null : (int) $confirmed_at;
+	}
+
+	return $users;
+}
+
+/**
  * Confirm a user has read a post.
  *
  * @param  int $user_id User ID.
@@ -87,6 +105,7 @@ function confirm_user_for_post( $user_id, $post_id ) {
 		$confirmed[] = $user_id;
 		$confirmed   = sanitize_confirmed_users_data( $confirmed );
 		update_post_meta( $post_id, 'hm_car_confirmed_users', (string) wp_json_encode( $confirmed ) );
+		update_post_meta( $post_id, 'hm_car_confirmed_' . (int) $user_id, time() );
 	}
 }
 
@@ -104,6 +123,7 @@ function unconfirm_user_for_post( $user_id, $post_id ) {
 		unset( $confirmed[ $key ] );
 		$confirmed = sanitize_confirmed_users_data( $confirmed );
 		update_post_meta( $post_id, 'hm_car_confirmed_users', wp_json_encode( $confirmed ) );
+		delete_post_meta( $post_id, 'hm_car_confirmed_' . (int) $user_id );
 	}
 }
 
@@ -182,6 +202,14 @@ function handle_save_meta_box( $post_id ) {
 
 	if ( isset( $_POST['hm-car-reset'] ) ) {
 		delete_post_meta( $post_id, 'hm_car_confirmed_users' );
+
+		// Clear out all timestamps.
+		$meta = get_post_meta( $post_id );
+		foreach ( $meta as $key => $_value ) {
+			if ( strpos( $key, 'hm_car_confirmed_' ) === 0 ) {
+				delete_post_meta( $post_id, $key );
+			}
+		}
 	}
 
 	return $post_id;
