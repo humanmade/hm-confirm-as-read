@@ -276,8 +276,6 @@ function get_post_type_label_singular( $post_id ) {
 			</small></p>
 		<?php endif; ?>
 
-		<?php wp_nonce_url( $actionurl, $action, $name ); ?>
-
 		<div class="hm-confirm-as-read-confirmed-users">
 			<h4><span class="hm-car-icon-tick">✔</span> <?php echo esc_html( $settings['confirmed_text'] ); ?></h4>
 			<?php render_confirmed_users( $post_id ); ?>
@@ -327,8 +325,9 @@ function render_unconfirmed_users( $post_id ) {
 		}
 		echo '</ul>';
 	} else {
+		$settings = Settings\get_settings();
 		echo '<p>';
-		echo esc_html( $settings['none_confirmed_text'] );
+		echo esc_html( $settings['none_unconfirmed_text'] );
 		echo '</p>';
 	}
 }
