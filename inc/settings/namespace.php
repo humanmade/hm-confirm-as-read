@@ -93,7 +93,7 @@ function get_keys() {
  * @return array settings.
  */
 function get_settings( $raw = false ) {
-	$settings = get_option( 'hm_confirm_as_read_settings' );
+	$settings = get_option( 'hm_confirm_as_read_settings', [] );
 	if ( $raw ) {
 		$settings = wp_parse_args( $settings, array_map( '__return_empty_string', array_flip( get_keys() ) ) );
 	} else {
